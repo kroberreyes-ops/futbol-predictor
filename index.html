@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,161 +6,217 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fútbol Predictor</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#101827;color:#f1f5f9;font-family:Arial,sans-serif;padding:18px}
-header{text-align:center;padding:18px 0}
-h1{color:#38d996;margin-bottom:6px}
-p{color:#b8c4d6}
-.card{background:#1c293b;padding:18px;border-radius:14px;margin:15px 0}
-label{display:block;margin:14px 0 7px}
-input,select,button{width:100%;padding:13px;border-radius:8px;border:1px solid #40516a;font-size:16px}
-input,select{background:#101827;color:white}
-button{background:#16a36a;color:white;font-weight:bold;border:0;margin-top:14px}
-.result{background:#101827;padding:13px;border-radius:8px;margin-top:10px}
-small{color:#aab8ca}
+body{font-family:Arial,sans-serif;background:#101827;color:#f5f7fb;margin:0;padding:16px}
+main{max-width:700px;margin:auto}
+section{background:#1c293b;padding:16px;border-radius:12px;margin:14px 0}
+h1{color:#65e6a6}
+label{display:block;margin-top:12px}
+input,select,button{box-sizing:border-box;width:100%;padding:12px;margin-top:7px;border-radius:8px;border:1px solid #506078;font-size:16px}
+button{background:#65e6a6;color:#102018;font-weight:bold;border:0}
+small,.muted{color:#b8c4d6}
+.match{padding:10px 0;border-bottom:1px solid #405066}
+.result{background:#263a4c;padding:12px;border-radius:8px;margin-top:10px}
 </style>
 </head>
 <body>
-<header>
+<main>
 <h1>⚽ Fútbol Predictor</h1>
-<p>Análisis estadístico de partidos</p>
-</header>
+<p class="muted">Análisis estadístico con datos disponibles de API-Football.</p>
 
-<section class="card">
+<section>
 <h3>1. Partidos disponibles</h3>
-<label for="fecha">Fecha del partido</label>
-<input type="date" id="fecha">
-<button onclick="cargarPartidos()">Consultar partidos</button>
-<p id="estado">Conectando con el servidor...</p>
-<label for="local">Equipo local</label>
-<select id="local">
-<option value="">Selecciona el equipo local</option>
-</select>
-<label for="visitante">Equipo visitante</label>
-<select id="visitante">
-<option value="">Selecciona el equipo visitante</option>
-</select>
-<button onclick="analizar()">Analizar partido</button>
+<label>Fecha</label>
+<input type="date" id="date">
+<button id="load">Consultar partidos</button>
+<p id="status">Listo para consultar.</p>
+<div id="matches"></div>
 </section>
 
-<section class="card">
-<h3>2. Predicción estadística</h3>
-<div id="resultado" class="result">
-Selecciona dos equipos para comenzar.
-</div>
+<section>
+<h3>2. Analizar partido</h3>
+<label>Equipo local</label>
+<select id="home"><option value="">Selecciona el equipo local</option></select>
+<label>Equipo visitante</label>
+<select id="away"><option value="">Selecciona el equipo visitante</option></select>
+<button id="analyze">Analizar últimos 5 partidos</button>
+<div id="prediction">Selecciona dos equipos para comenzar.</div>
 </section>
 
-<section class="card">
+<section>
 <h3>3. Datos del servidor</h3>
-<div id="partidos"><small>Los partidos aparecerán aquí.</small></div>
+<div id="server">Esperando consulta.</div>
 </section>
+</main>
 
 <script>
 const API="https://futbol-predictor-api.kroberreyes.workers.dev";
-let partidos=[];
+const $=id=>document.getElementById(id);
+const teams=new Map();
+let fixtures=[];
 
-const fecha=document.getElementById("fecha");
-const hoy=new Date();
-fecha.value=[
-hoy.getFullYear(),
-String(hoy.getMonth()+1).padStart(2,"0"),
-String(hoy.getDate()).padStart(2,"0")
+const today=new Date();
+$("date").value=[
+today.getFullYear(),
+String(today.getMonth()+1).padStart(2,"0"),
+String(today.getDate()).padStart(2,"0")
 ].join("-");
 
-async function cargarPartidos(){
-const estado=document.getElementById("estado");
-const lista=document.getElementById("partidos");
-estado.textContent="Consultando partidos...";
-lista.textContent="Cargando...";
-try{
-const url=API+"/fixtures?date="+encodeURIComponent(fecha.value);
-const respuesta=await fetch(url);
-if(!respuesta.ok)throw Error("Error HTTP "+respuesta.status);
-const datos=await respuesta.json();
-if(datos.errors && Object.keys(datos.errors).length){
-throw Error(JSON.stringify(datos.errors));
-}
-if(!Array.isArray(datos.response)){
-throw Error("El servidor no devolvió la lista de partidos esperada.");
-}
-partidos=datos.response;
-llenarEquipos();
-estado.textContent="Partidos recibidos: "+partidos.length;
-lista.innerHTML="";
-if(!partidos.length){
-lista.textContent="No hay partidos para esta fecha.";
-return;
-}
-partidos.forEach(p=>{
-const f=p.fixture||{};
-const l=p.teams?.home?.name||"Local";
-const v=p.teams?.away?.name||"Visitante";
-const goles=p.goals||{};
-const marcador=(goles.home??"-")+" - "+(goles.away??"-");
-const div=document.createElement("div");
-div.className="result";
-const titulo=document.createElement("strong");
-titulo.textContent=l+" vs "+v;
-const detalle=document.createElement("p");
-detalle.textContent=(p.league?.name||"Liga")+" · "+(f.status?.long||"Estado desconocido")+" · "+marcador;
-div.append(titulo,detalle);
-lista.appendChild(div);
-});
-}catch(e){
-estado.textContent="No se pudieron cargar los partidos.";
-lista.textContent=e.message;
-}
+function safe(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ })[c]);
 }
 
-function llenarEquipos(){
-const local=document.getElementById("local");
-const visitante=document.getElementById("visitante");
-local.replaceChildren(new Option("Selecciona el equipo local",""));
-visitante.replaceChildren(new Option("Selecciona el equipo visitante",""));
-const equipos=new Map();
-partidos.forEach(p=>{
-if(p.teams?.home) equipos.set(String(p.teams.home.id),p.teams.home.name);
-if(p.teams?.away) equipos.set(String(p.teams.away.id),p.teams.away.name);
-});
-equipos.forEach((nombre,id)=>{
-local.add(new Option(nombre,id));
-visitante.add(new Option(nombre,id));
-});
+async function get(path,params={}){
+ const q=new URLSearchParams(params);
+ const r=await fetch(API+path+"?"+q.toString());
+ const d=await r.json();
+ if(!r.ok) throw Error(d.message||d.error||"Error consultando el servidor");
+ if(d.errors && Object.keys(d.errors).length)
+   throw Error(JSON.stringify(d.errors));
+ return d;
 }
 
-function analizar(){
-const idL=document.getElementById("local").value;
-const idV=document.getElementById("visitante").value;
-const salida=document.getElementById("resultado");
-if(!idL||!idV||idL===idV){
-salida.textContent="Selecciona dos equipos diferentes.";
-return;
-}
-const partido=partidos.find(p=>
-String(p.teams?.home?.id)===idL &&
-String(p.teams?.away?.id)===idV
-);
-if(!partido){
-salida.textContent="No se encontró este enfrentamiento en la fecha seleccionada. Consulta otra fecha o selecciona los equipos en el orden del partido.";
-return;
-}
-const f=partido.fixture||{};
-const goles=partido.goals||{};
-salida.replaceChildren();
-const titulo=document.createElement("strong");
-titulo.textContent=partido.teams.home.name+" vs "+partido.teams.away.name;
-const detalle=document.createElement("p");
-detalle.textContent="Liga: "+(partido.league?.name||"No disponible")+
-" · Estado: "+(f.status?.long||"No disponible");
-const marcador=document.createElement("p");
-marcador.textContent="Marcador registrado: "+
-(goles.home??"Sin dato")+" - "+(goles.away??"Sin dato");
-const aviso=document.createElement("small");
-aviso.textContent="Esta versión consulta el calendario y el marcador disponible. Todavía no calcula probabilidades reales a partir de los últimos partidos, córners, tarjetas, fueras de juego o remates. No se inventan estadísticas.";
-salida.append(titulo,detalle,marcador,aviso);
+function addTeam(t){
+ if(t?.id && t?.name) teams.set(String(t.id),t.name);
 }
 
-cargarPartidos();
+function fillTeams(){
+ for(const id of ["home","away"]){
+   const select=$(id), old=select.value;
+   select.innerHTML='<option value="">Selecciona un equipo</option>';
+   for(const [teamId,name] of [...teams.entries()].sort((a,b)=>a[1].localeCompare(b[1]))){
+     const op=document.createElement("option");
+     op.value=teamId;op.textContent=name;select.appendChild(op);
+   }
+   if(teams.has(old))select.value=old;
+ }
+}
+
+async function loadFixtures(){
+ $("status").textContent="Consultando partidos…";
+ $("load").disabled=true;
+ try{
+   const d=await get("/fixtures",{date:$("date").value});
+   fixtures=d.response||[];
+   teams.clear();
+   fixtures.forEach(f=>{
+     addTeam(f.teams?.home);
+     addTeam(f.teams?.away);
+   });
+   fillTeams();
+
+   $("matches").innerHTML=fixtures.slice(0,40).map(f=>{
+     const h=f.teams?.home?.name||"Local";
+     const a=f.teams?.away?.name||"Visitante";
+     const score=f.goals?.home==null?"- - -":
+       `${f.goals.home} - ${f.goals.away}`;
+     return `<div class="match"><b>${safe(h)} vs ${safe(a)}</b><br>
+       <small>${safe(f.league?.name||"Liga")} ·
+       ${safe(f.fixture?.status?.long||"Estado desconocido")} · ${score}</small>
+       <br><button type="button" data-home="${f.teams.home.id}"
+       data-away="${f.teams.away.id}">Seleccionar partido</button></div>`;
+   }).join("");
+
+   $("matches").querySelectorAll("button").forEach(b=>{
+     b.onclick=()=>{
+       $("home").value=b.dataset.home;
+       $("away").value=b.dataset.away;
+       $("prediction").textContent="Partido seleccionado. Pulsa Analizar.";
+     };
+   });
+
+   $("status").textContent=`Partidos recibidos: ${fixtures.length}`;
+   $("server").textContent=`Conexión correcta. Se recibieron ${fixtures.length} partidos.`;
+ }catch(e){
+   $("status").textContent="No se pudieron cargar los partidos: "+e.message;
+   $("server").textContent=e.message;
+ }finally{$("load").disabled=false;}
+}
+
+function summarize(response,teamId){
+ const games=(response||[]).filter(f=>
+   f.goals?.home!=null && f.goals?.away!=null &&
+   f.teams?.home?.id!=null && f.teams?.away?.id!=null
+ ).slice(0,5);
+
+ let played=0,wins=0,draws=0,losses=0,scored=0,conceded=0;
+ let over15=0,btts=0;
+
+ for(const f of games){
+   const home=String(f.teams.home.id)===String(teamId);
+   const gf=Number(home?f.goals.home:f.goals.away);
+   const ga=Number(home?f.goals.away:f.goals.home);
+   played++;scored+=gf;conceded+=ga;
+   if(gf>ga)wins++;else if(gf===ga)draws++;else losses++;
+   if(gf+ga>1.5)over15++;
+   if(gf>0&&ga>0)btts++;
+ }
+ return {played,wins,draws,losses,scored,conceded,over15,btts};
+}
+
+function percent(n,total){
+ return total?Math.round(n/total*100)+"%":"Sin datos";
+}
+
+async function analyze(){
+ const hid=$("home").value, aid=$("away").value;
+ if(!hid||!aid||hid===aid){
+   $("prediction").textContent="Selecciona dos equipos diferentes.";
+   return;
+ }
+ $("analyze").disabled=true;
+ $("prediction").textContent="Analizando los últimos partidos disponibles…";
+ try{
+   const [hd,ad]=await Promise.all([
+     get("/fixtures",{team:hid,last:5}),
+     get("/fixtures",{team:aid,last:5})
+   ]);
+   const h=summarize(hd.response,hid);
+   const a=summarize(ad.response,aid);
+   const hn=teams.get(hid)||"Local", an=teams.get(aid)||"Visitante";
+
+   if(h.played===0||a.played===0){
+     $("prediction").textContent="La API no devolvió suficientes partidos terminados para ambos equipos.";
+     return;
+   }
+
+   const avgH=h.scored/h.played, avgA=a.scored/a.played;
+   const totalAvg=(avgH+a.conceded/a.played+
+                   avgA+h.conceded/h.played)/2;
+   const homeEdge=avgH-(a.conceded/a.played);
+   let lean=homeEdge>0.25?hn:homeEdge< -0.25?an:"Partido equilibrado";
+
+   $("prediction").innerHTML=`
+    <div class="result">
+    <h3>${safe(hn)} vs ${safe(an)}</h3>
+    <p><b>Base analizada:</b> ${h.played} partidos de ${safe(hn)} y ${a.played} de ${safe(an)}.</p>
+    <h4>Últimos partidos: ${safe(hn)}</h4>
+    Victorias: ${h.wins} · Empates: ${h.draws} · Derrotas: ${h.losses}<br>
+    Goles a favor por partido: ${(h.scored/h.played).toFixed(2)}<br>
+    Goles en contra por partido: ${(h.conceded/h.played).toFixed(2)}<br>
+    Más de 1.5 goles: ${percent(h.over15,h.played)}<br>
+    Ambos anotaron: ${percent(h.btts,h.played)}
+    <h4>Últimos partidos: ${safe(an)}</h4>
+    Victorias: ${a.wins} · Empates: ${a.draws} · Derrotas: ${a.losses}<br>
+    Goles a favor por partido: ${(a.scored/a.played).toFixed(2)}<br>
+    Goles en contra por partido: ${(a.conceded/a.played).toFixed(2)}<br>
+    Más de 1.5 goles: ${percent(a.over15,a.played)}<br>
+    Ambos anotaron: ${percent(a.btts,a.played)}
+    <h4>Estimación inicial</h4>
+    Tendencia por goles: <b>${safe(lean)}</b><br>
+    Promedio orientativo de goles totales: ${totalAvg.toFixed(2)}
+    <p class="muted">Estimación descriptiva, no garantía de resultado. Se basa en los partidos devueltos por la API.</p>
+    <p class="muted">Córners, tarjetas, fueras de juego y remates aún no están incluidos en este cálculo.</p>
+    </div>`;
+ }catch(e){
+   $("prediction").textContent="No se pudo completar el análisis: "+e.message;
+ }finally{$("analyze").disabled=false;}
+}
+
+$("load").addEventListener("click",loadFixtures);
+$("analyze").addEventListener("click",analyze);
+loadFixtures();
 </script>
 </body>
 </html>
