@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fútbol Predictor</title>
+<style>
+body{font-family:Arial,sans-serif;background:#101827;color:white;margin:0;padding:18px}
+h1{color:#54e69a;text-align:center}
+.card{background:#1e293b;padding:16px;border-radius:12px;margin:14px 0}
+input,select,button{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:8px;border:0;font-size:16px}
+button{background:#22c55e;color:#052e16;font-weight:bold}
+.result{background:#26364c;padding:12px;border-radius:8px;white-space:pre-line}
+small{color:#cbd5e1}
+</style>
+</head>
+<body>
+<h1>⚽ Fútbol Predictor</h1>
+<p style="text-align:center">Sistema de análisis estadístico de partidos</p>
+
+<div class="card">
+<h3>1. Datos del partido</h3>
+<input id="local" placeholder="Equipo local">
+<input id="visita" placeholder="Equipo visitante">
+<input id="gl" type="number" min="0" step="0.1" placeholder="Promedio goles local (últimos 5)">
+<input id="gv" type="number" min="0" step="0.1" placeholder="Promedio goles visitante (últimos 5)">
+<input id="cl" type="number" min="0" step="0.1" placeholder="Promedio córners local">
+<input id="cv" type="number" min="0" step="0.1" placeholder="Promedio córners visitante">
+<input id="tl" type="number" min="0" step="0.1" placeholder="Promedio tarjetas local">
+<input id="tv" type="number" min="0" step="0.1" placeholder="Promedio tarjetas visitante">
+<input id="fl" type="number" min="0" step="0.1" placeholder="Promedio fueras de juego local">
+<input id="fv" type="number" min="0" step="0.1" placeholder="Promedio fueras de juego visitante">
+<input id="rl" type="number" min="0" step="0.1" placeholder="Remates a puerta por partido del local">
+<input id="rv" type="number" min="0" step="0.1" placeholder="Remates a puerta por partido del visitante">
+<button onclick="predecir()">Analizar partido</button>
+</div>
+
+<div class="card">
+<h3>2. Predicción estadística</h3>
+<div id="resultado" class="result">Introduce los datos para generar una estimación.</div>
+</div>
+
+<small>Importante: esta primera versión utiliza los datos que introduzcas manualmente. No garantiza resultados ni obtiene estadísticas en vivo todavía.</small>
+
+<script>
+function num(id){
+ return document.getElementById(id).value.trim()===""?null:Number(document.getElementById(id).value);
+}
+function predecir(){
+ const local=document.getElementById("local").value.trim();
+ const visita=document.getElementById("visita").value.trim();
+ const ids=["gl","gv","cl","cv","tl","tv","fl","fv","rl","rv"];
+ const v=ids.map(num);
+ const out=document.getElementById("resultado");
+ if(!local||!visita||local===visita||v.some(x=>x===null||!Number.isFinite(x)||x<0)){
+  out.textContent="Completa los dos equipos y todos los promedios con números válidos.";
+  return;
+ }
+ const [gl,gv,cl,cv,tl,tv,fl,fv,rl,rv]=v;
+ let ganador="Empate o partido equilibrado";
+ if(gl>gv+0.25) ganador="Mayor tendencia: "+local;
+ if(gv>gl+0.25) ganador="Mayor tendencia: "+visita;
+ const goles=gl+gv, corners=cl+cv, tarjetas=tl+tv, fueras=fl+fv, remates=rl+rv;
+ out.textContent=
+ "PARTIDO: "+local+" vs "+visita+
+ "\n\nTendencia de resultado: "+ganador+
+ "\nGoles totales estimados: "+goles.toFixed(1)+
+ "\nLínea orientativa de goles: "+(goles>=2.5?"Tendencia a más de 2.5":"Tendencia a menos de 2.5")+
+ "\nCórners estimados: "+corners.toFixed(1)+
+ "\nTarjetas estimadas: "+tarjetas.toFixed(1)+
+ "\nFueras de juego estimados: "+fueras.toFixed(1)+
+ "\nRemates a puerta combinados: "+remates.toFixed(1)+
+ "\n\nEstas son estimaciones simples, no probabilidades verificadas ni una garantía.";
+}
+</script>
+</body>
+</html>
