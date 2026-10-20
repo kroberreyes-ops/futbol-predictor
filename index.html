@@ -7,145 +7,119 @@
   <meta name="theme-color" content="#101827">
   <title>Fútbol Predictor</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #101827;
-      --panel: #1b2638;
-      --line: #344256;
-      --text: #f4f7fb;
-      --muted: #aebbd0;
-      --green: #35d07f;
-      --red: #ff8585;
-    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 16px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, Arial, sans-serif;
+      background: #101827;
+      color: #f1f5f9;
+      font-family: Arial, sans-serif;
     }
     main { max-width: 760px; margin: auto; }
-    h1 { font-size: 27px; margin: 4px 0; }
-    h2 { font-size: 19px; margin: 0 0 14px; }
-    p { line-height: 1.5; }
-    .sub { color: var(--muted); margin-top: 4px; }
+    h1 { color: #38bdf8; font-size: 27px; }
+    h2 { font-size: 19px; }
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 13px;
       padding: 16px;
-      margin: 16px 0;
+      margin: 15px 0;
     }
     label {
       display: block;
-      font-size: 14px;
-      color: var(--muted);
-      margin: 12px 0 6px;
+      margin: 13px 0 7px;
+      font-weight: bold;
     }
-    input, select, button {
+    input, button {
       width: 100%;
-      min-height: 46px;
-      border-radius: 9px;
-      border: 1px solid var(--line);
-      padding: 10px;
-      font: inherit;
+      min-height: 45px;
+      padding: 11px;
+      border-radius: 8px;
+      font-size: 16px;
     }
-    input, select { background: #101827; color: var(--text); }
+    input {
+      color: #111827;
+      background: white;
+      border: 1px solid #94a3b8;
+    }
     button {
-      background: var(--green);
-      color: #07160e;
       border: 0;
-      font-weight: 750;
-      cursor: pointer;
+      background: #0284c7;
+      color: white;
+      font-weight: bold;
       margin-top: 12px;
+      cursor: pointer;
     }
-    button:disabled { opacity: .55; cursor: wait; }
-    .secondary { background: #344256; color: white; }
-    .muted { color: var(--muted); }
-    .status {
-      border-radius: 9px;
-      padding: 12px;
-      background: #101827;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-    .good { color: var(--green); }
-    .bad { color: var(--red); }
-    .match {
-      border-bottom: 1px solid var(--line);
-      padding: 10px 0;
-    }
-    .match:last-child { border-bottom: 0; }
-    .score { font-weight: 800; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
+    button:disabled { opacity: .55; }
+    .secondary { background: #475569; }
+    .status { color: #bae6fd; line-height: 1.5; }
+    .error { color: #fca5a5; }
+    .muted { color: #cbd5e1; font-size: 14px; }
     .stat {
+      background: #0f172a;
       padding: 12px;
-      border-radius: 10px;
-      background: #101827;
-      min-width: 0;
+      border-radius: 8px;
+      margin: 9px 0;
+      line-height: 1.6;
     }
-    .stat strong { display: block; font-size: 22px; margin-top: 4px; }
-    .small { font-size: 13px; color: var(--muted); }
+    .score { color: #7dd3fc; font-weight: bold; }
     .hidden { display: none; }
-    @media (max-width: 420px) {
-      body { padding: 10px; }
-      .panel { padding: 12px; }
-      h1 { font-size: 24px; }
-    }
   </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1>⚽ Fútbol Predictor</h1>
-    <p class="sub">Estadísticas reales para analizar partidos de fútbol.</p>
-  </header>
+  <h1>⚽ Fútbol Predictor</h1>
+  <p class="muted">
+    Estadísticas de partidos y estimaciones basadas en resultados disponibles.
+  </p>
 
   <section class="panel">
     <h2>1. Buscar partido</h2>
-    <label for="date">Fecha del partido</label>
-    <input id="date" type="date">
-    <button id="loadBtn">Cargar equipos de esta fecha</button>
-    <p id="loadStatus" class="status" aria-live="polite">
-      Listo para cargar los partidos.
+
+    <label for="fecha">Fecha del partido</label>
+    <input type="date" id="fecha">
+
+    <button id="cargar">Cargar equipos de esta fecha</button>
+    <p id="estado" class="status" aria-live="polite">
+      Conectando con el servidor...
     </p>
-    <p id="counts" class="small"></p>
+    <p id="conteo" class="muted">Partidos recibidos: 0 · Equipos disponibles: 0</p>
 
-    <label for="home">Equipo local</label>
-    <select id="home">
-      <option value="">Primero carga los partidos</option>
-    </select>
+    <label for="local">Equipo local: escribe para buscar</label>
+    <input id="local" list="listaEquipos"
+      placeholder="Ej.: Barca, Real Madrid, PSG..."
+      autocomplete="off">
+    
+    <label for="visitante">Equipo visitante: escribe para buscar</label>
+    <input id="visitante" list="listaEquipos"
+      placeholder="Ej.: Liverpool, Manchester City..."
+      autocomplete="off">
 
-    <label for="away">Equipo visitante</label>
-    <select id="away">
-      <option value="">Primero carga los partidos</option>
-    </select>
+    <datalist id="listaEquipos"></datalist>
 
-    <button id="analyzeBtn">Analizar últimos 5 partidos</button>
+    <button id="analizar">Analizar últimos 5 partidos</button>
+    <button id="limpiar" class="secondary">Limpiar selección</button>
+    <p class="muted">
+      No necesitas recorrer toda la lista: escribe parte del nombre
+      y selecciona el equipo sugerido.
+    </p>
   </section>
 
   <section class="panel">
     <h2>2. Resultado del análisis</h2>
-    <p id="analysisStatus" class="status" aria-live="polite">
+    <div id="resultado" aria-live="polite">
       Selecciona los dos equipos para comenzar.
-    </p>
-    <div id="results"></div>
+    </div>
   </section>
 
   <section class="panel">
     <h2>Conexión</h2>
-    <p id="connection" class="status">Comprobando conexión...</p>
+    <p id="conexion" class="status">Comprobando conexión...</p>
+    <p class="muted">
+      Las predicciones son estimaciones estadísticas, no resultados
+      garantizados. Se utilizan únicamente los encuentros disponibles.
+    </p>
   </section>
-
-  <p class="small">
-    Las predicciones son estimaciones estadísticas, no resultados garantizados.
-    Los promedios se calculan solo con los encuentros disponibles.
-  </p>
 </main>
 
 <script>
@@ -155,397 +129,380 @@
   const API = "https://futbol-predictor-api.kroberreyes.workers.dev";
 
   const $ = id => document.getElementById(id);
-  const dateInput = $("date");
-  const homeSelect = $("home");
-  const awaySelect = $("away");
-  const loadBtn = $("loadBtn");
-  const analyzeBtn = $("analyzeBtn");
+  const fecha = $("fecha");
+  const local = $("local");
+  const visitante = $("visitante");
+  const lista = $("listaEquipos");
+  const estado = $("estado");
+  const conteo = $("conteo");
+  const resultado = $("resultado");
+  const conexion = $("conexion");
+  const cargarBtn = $("cargar");
+  const analizarBtn = $("analizar");
 
-  let dateFixtures = [];
-  let teamList = [];
-  let loading = false;
+  let partidos = [];
+  let equipos = new Map();
+  let cargando = false;
+  let analizando = false;
 
-  // La fecha se ajusta al calendario local del teléfono.
-  const now = new Date();
-  dateInput.value =
-    now.getFullYear() + "-" +
-    String(now.getMonth() + 1).padStart(2, "0") + "-" +
-    String(now.getDate()).padStart(2, "0");
+  // Fecha local del dispositivo.
+  const hoy = new Date();
+  fecha.value = [
+    hoy.getFullYear(),
+    String(hoy.getMonth() + 1).padStart(2, "0"),
+    String(hoy.getDate()).padStart(2, "0")
+  ].join("-");
 
-  function setStatus(id, message, type = "") {
-    const el = $(id);
-    el.textContent = message;
-    el.className = "status " + type;
+  function mensaje(elemento, texto, error = false) {
+    elemento.textContent = texto;
+    elemento.className = error ? "error" : "status";
   }
 
-  function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async function api(endpoint, params = {}) {
-    const url = new URL(API + "/" + endpoint);
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
+  async function pedir(ruta) {
+    const respuesta = await fetch(API + ruta, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
     });
 
-    let response;
-    try {
-      response = await fetch(url.toString(), { method: "GET" });
-    } catch {
-      throw new Error("No se pudo conectar con el servidor de datos.");
-    }
-
-    const text = await response.text();
-    let data;
+    const texto = await respuesta.text();
+    let datos;
 
     try {
-      data = JSON.parse(text);
+      datos = JSON.parse(texto);
     } catch {
-      throw new Error("El servidor devolvió una respuesta no válida.");
+      throw new Error("El servidor no devolvió una respuesta JSON válida.");
     }
 
-    if (!response.ok) {
+    if (!respuesta.ok) {
       throw new Error(
-        data.error ||
-        (response.status === 429
-          ? "Se alcanzó el límite de consultas. Espera antes de reintentar."
-          : "Error HTTP " + response.status)
+        datos.message || datos.error || `Error HTTP ${respuesta.status}`
       );
     }
 
-    if (data.error) throw new Error(data.error);
+    if (datos.errors) {
+      const errores = Array.isArray(datos.errors)
+        ? datos.errors.join(", ")
+        : Object.values(datos.errors).filter(Boolean).join(", ");
 
-    if (data.errors && Object.keys(data.errors).length) {
-      throw new Error(JSON.stringify(data.errors));
+      if (errores) throw new Error(errores);
     }
 
-    return data;
-  }
-
-  function getResponse(data) {
-    return Array.isArray(data.response) ? data.response : [];
-  }
-
-  function getTeams(fixtures) {
-    const map = new Map();
-
-    fixtures.forEach(item => {
-      if (item.teams?.home?.id) {
-        map.set(item.teams.home.id, item.teams.home.name);
-      }
-      if (item.teams?.away?.id) {
-        map.set(item.teams.away.id, item.teams.away.name);
-      }
-    });
-
-    return [...map.entries()]
-      .map(([id, name]) => ({ id: Number(id), name }))
-      .sort((a, b) => a.name.localeCompare(b.name, "es"));
-  }
-
-  function fillSelect(select, teams, placeholder) {
-    select.replaceChildren();
-    const first = document.createElement("option");
-    first.value = "";
-    first.textContent = placeholder;
-    select.appendChild(first);
-
-    teams.forEach(team => {
-      const option = document.createElement("option");
-      option.value = String(team.id);
-      option.textContent = team.name;
-      select.appendChild(option);
-    });
-  }
-
-  async function checkConnection() {
-    try {
-      const data = await api("");
-      setStatus(
-        "connection",
-        data.status === "ok"
-          ? "Conexión correcta con el servidor."
-          : "Servidor conectado; respuesta recibida.",
-        "good"
-      );
-    } catch (error) {
-      setStatus("connection", error.message, "bad");
+    if (datos.status === "error" || datos.error) {
+      throw new Error(datos.message || datos.error || "Error del proveedor.");
     }
+
+    return datos;
   }
 
-  async function loadFixtures() {
-    if (loading) return;
+  function listaPartidos(datos) {
+    if (Array.isArray(datos)) return datos;
+    if (Array.isArray(datos.response)) return datos.response;
+    if (Array.isArray(datos.fixtures)) return datos.fixtures;
+    return [];
+  }
 
-    if (!dateInput.value) {
-      setStatus("loadStatus", "Selecciona una fecha.", "bad");
+  function registrarEquipos(listaPartidos) {
+    equipos.clear();
+
+    for (const partido of listaPartidos) {
+      const casa = partido?.teams?.home;
+      const fuera = partido?.teams?.away;
+
+      if (casa?.id != null && casa?.name) {
+        equipos.set(String(casa.id), {
+          id: casa.id,
+          name: casa.name
+        });
+      }
+
+      if (fuera?.id != null && fuera?.name) {
+        equipos.set(String(fuera.id), {
+          id: fuera.id,
+          name: fuera.name
+        });
+      }
+    }
+
+    lista.innerHTML = "";
+
+    const ordenados = [...equipos.values()].sort(
+      (a, b) => a.name.localeCompare(b.name, "es")
+    );
+
+    for (const equipo of ordenados) {
+      const opcion = document.createElement("option");
+      opcion.value = equipo.name;
+      lista.appendChild(opcion);
+    }
+
+    conteo.textContent =
+      `Partidos recibidos: ${listaPartidos.length} · ` +
+      `Equipos disponibles: ${equipos.size}`;
+  }
+
+  function encontrarEquipo(texto) {
+    const nombre = texto.trim().toLocaleLowerCase("es");
+    if (!nombre) return null;
+
+    const coincidencias = [...equipos.values()].filter(
+      equipo => equipo.name.toLocaleLowerCase("es") === nombre
+    );
+
+    if (coincidencias.length === 1) return coincidencias[0];
+
+    // Acepta alias habituales al buscar, pero exige una selección inequívoca.
+    const alias = {
+      "barca": "barcelona",
+      "psg": "paris saint germain",
+      "man city": "manchester city",
+      "man united": "manchester united"
+    };
+
+    const buscado = alias[nombre] || nombre;
+    const exactos = [...equipos.values()].filter(
+      equipo => equipo.name.toLocaleLowerCase("es") === buscado
+    );
+
+    if (exactos.length === 1) return exactos[0];
+
+    return null;
+  }
+
+  async function cargarEquipos() {
+    if (cargando) return;
+
+    if (!fecha.value) {
+      mensaje(estado, "Selecciona una fecha.", true);
       return;
     }
 
-    loading = true;
-    loadBtn.disabled = true;
-    analyzeBtn.disabled = true;
-    setStatus("loadStatus", "Cargando partidos de la fecha...");
-    $("counts").textContent = "";
-    dateFixtures = [];
-    teamList = [];
-    fillSelect(homeSelect, [], "Cargando equipos...");
-    fillSelect(awaySelect, [], "Cargando equipos...");
+    cargando = true;
+    cargarBtn.disabled = true;
+    mensaje(estado, "Cargando partidos y equipos...");
+    resultado.textContent = "Esperando selección de equipos.";
 
     try {
-      const data = await api("fixtures", { date: dateInput.value });
-      dateFixtures = getResponse(data);
-      teamList = getTeams(dateFixtures);
+      const datos = await pedir(
+        "/fixtures?date=" + encodeURIComponent(fecha.value)
+      );
 
-      if (!dateFixtures.length) {
-        fillSelect(homeSelect, [], "No hay equipos para esta fecha");
-        fillSelect(awaySelect, [], "No hay equipos para esta fecha");
-        setStatus(
-          "loadStatus",
-          "La fuente no devolvió partidos para esa fecha. Prueba otra fecha.",
-          "bad"
+      partidos = listaPartidos(datos);
+      registrarEquipos(partidos);
+
+      if (!partidos.length) {
+        mensaje(
+          estado,
+          "El proveedor no devolvió partidos para esta fecha. " +
+          "Prueba otra fecha o revisa el mensaje del proveedor.",
+          true
         );
-        $("counts").textContent = "Partidos recibidos: 0 · Equipos: 0";
-        return;
+      } else {
+        mensaje(estado, "Partidos cargados correctamente. Selecciona los equipos.");
       }
 
-      fillSelect(homeSelect, teamList, "Selecciona equipo local");
-      fillSelect(awaySelect, teamList, "Selecciona equipo visitante");
-
-      $("counts").textContent =
-        "Partidos recibidos: " + dateFixtures.length +
-        " · Equipos disponibles: " + teamList.length;
-
-      setStatus(
-        "loadStatus",
-        "Partidos cargados correctamente. Selecciona los equipos.",
-        "good"
-      );
+      conexion.textContent = "Conexión correcta con el servidor.";
     } catch (error) {
-      fillSelect(homeSelect, [], "Error al cargar equipos");
-      fillSelect(awaySelect, [], "Error al cargar equipos");
-      setStatus("loadStatus", error.message, "bad");
+      mensaje(estado, "No se pudieron cargar los equipos: " + error.message, true);
+      conexion.textContent = "Error de consulta al proveedor.";
     } finally {
-      loading = false;
-      loadBtn.disabled = false;
-      analyzeBtn.disabled = false;
+      cargando = false;
+      cargarBtn.disabled = false;
     }
   }
 
-  function goalsOf(match, teamId) {
-    const isHome = Number(match.teams?.home?.id) === Number(teamId);
+  function terminar(partido) {
+    const estadoPartido = partido?.fixture?.status?.short;
+    return ["FT", "AET", "PEN"].includes(estadoPartido);
+  }
+
+  function resumen(equipo, encuentros) {
+    const jugados = encuentros
+      .filter(terminar)
+      .filter(p =>
+        String(p?.teams?.home?.id) === String(equipo.id) ||
+        String(p?.teams?.away?.id) === String(equipo.id)
+      )
+      .sort((a, b) =>
+        new Date(b.fixture.date) - new Date(a.fixture.date)
+      )
+      .slice(0, 5);
+
+    let victorias = 0, empates = 0, derrotas = 0;
+    let golesFavor = 0, golesContra = 0;
+    let mas15 = 0, ambos = 0;
+
+    const detalle = [];
+
+    for (const p of jugados) {
+      const esLocal = String(p.teams.home.id) === String(equipo.id);
+      const gf = Number(esLocal ? p.goals.home : p.goals.away);
+      const gc = Number(esLocal ? p.goals.away : p.goals.home);
+
+      if (!Number.isFinite(gf) || !Number.isFinite(gc)) continue;
+
+      golesFavor += gf;
+      golesContra += gc;
+
+      if (gf > gc) victorias++;
+      else if (gf === gc) empates++;
+      else derrotas++;
+
+      if (gf + gc > 1.5) mas15++;
+      if (gf > 0 && gc > 0) ambos++;
+
+      detalle.push({
+        fecha: p.fixture.date,
+        rival: esLocal ? p.teams.away.name : p.teams.home.name,
+        marcador: `${gf}-${gc}`,
+        casa: esLocal
+      });
+    }
+
     return {
-      scored: isHome ? match.goals?.home : match.goals?.away,
-      conceded: isHome ? match.goals?.away : match.goals?.home
+      equipo: equipo.name,
+      jugados: detalle.length,
+      victorias, empates, derrotas,
+      golesFavor, golesContra,
+      promedioFavor: detalle.length
+        ? (golesFavor / detalle.length).toFixed(2) : "N/D",
+      promedioContra: detalle.length
+        ? (golesContra / detalle.length).toFixed(2) : "N/D",
+      mas15, ambos, detalle
     };
   }
 
-  function summarize(matches, teamId) {
-    const complete = matches.filter(match =>
-      match.fixture?.status?.short === "FT" ||
-      match.fixture?.status?.short === "AET" ||
-      match.fixture?.status?.short === "PEN"
-    );
+  function pintarResumen(r) {
+    const bloque = document.createElement("div");
+    bloque.className = "stat";
 
-    const summary = {
-      name: teamList.find(t => t.id === Number(teamId))?.name || "Equipo",
-      played: complete.length,
-      wins: 0,
-      draws: 0,
-      losses: 0,
-      scored: 0,
-      conceded: 0,
-      over15: 0,
-      btts: 0,
-      matches: complete
-    };
+    const titulo = document.createElement("h3");
+    titulo.textContent = r.equipo;
+    bloque.appendChild(titulo);
 
-    complete.forEach(match => {
-      const goals = goalsOf(match, teamId);
-      if (!Number.isFinite(goals.scored) ||
-          !Number.isFinite(goals.conceded)) return;
-
-      summary.scored += goals.scored;
-      summary.conceded += goals.conceded;
-
-      if (goals.scored > goals.conceded) summary.wins++;
-      else if (goals.scored === goals.conceded) summary.draws++;
-      else summary.losses++;
-
-      if (goals.scored + goals.conceded >= 2) summary.over15++;
-      if (goals.scored > 0 && goals.conceded > 0) summary.btts++;
-    });
-
-    return summary;
-  }
-
-  function pct(value, total) {
-    return total ? Math.round(value / total * 100) + "%" : "Sin datos";
-  }
-
-  function average(value, total) {
-    return total ? (value / total).toFixed(2) : "Sin datos";
-  }
-
-  function addText(parent, tag, text, className = "") {
-    const el = document.createElement(tag);
-    el.textContent = text;
-    if (className) el.className = className;
-    parent.appendChild(el);
-    return el;
-  }
-
-  function renderSummary(summary) {
-    const section = document.createElement("div");
-    section.className = "panel";
-
-    addText(section, "h2", summary.name);
-    addText(
-      section,
-      "p",
-      "Partidos completos analizados: " + summary.played +
-      " de los últimos 5 solicitados."
-    );
-
-    const grid = document.createElement("div");
-    grid.className = "grid";
-
-    const stats = [
-      ["Victorias / Empates / Derrotas",
-        summary.wins + " / " + summary.draws + " / " + summary.losses],
-      ["Goles anotados (promedio)", average(summary.scored, summary.played)],
-      ["Goles recibidos (promedio)", average(summary.conceded, summary.played)],
-      ["Más de 1.5 goles", pct(summary.over15, summary.played)],
-      ["Ambos equipos anotaron", pct(summary.btts, summary.played)]
+    const lineas = [
+      `Partidos analizados: ${r.jugados}`,
+      `Victorias: ${r.victorias} · Empates: ${r.empates} · Derrotas: ${r.derrotas}`,
+      `Goles a favor: ${r.golesFavor} · Goles en contra: ${r.golesContra}`,
+      `Promedio de goles a favor: ${r.promedioFavor}`,
+      `Promedio de goles en contra: ${r.promedioContra}`,
+      `Partidos con más de 1.5 goles: ${r.mas15}/${r.jugados}`,
+      `Ambos equipos anotaron: ${r.ambos}/${r.jugados}`
     ];
 
-    stats.forEach(([label, value]) => {
-      const card = document.createElement("div");
-      card.className = "stat";
-      addText(card, "div", label, "small");
-      addText(card, "strong", value);
-      grid.appendChild(card);
-    });
-
-    section.appendChild(grid);
-    addText(section, "h3", "Últimos resultados");
-
-    if (!summary.matches.length) {
-      addText(section, "p", "No hay resultados completos disponibles.", "bad");
+    for (const linea of lineas) {
+      const p = document.createElement("p");
+      p.textContent = linea;
+      bloque.appendChild(p);
     }
 
-    summary.matches.forEach(match => {
-      const home = match.teams?.home?.name || "Local";
-      const away = match.teams?.away?.name || "Visitante";
-      const score = match.goals?.home + " - " + match.goals?.away;
-      const date = match.fixture?.date
-        ? new Date(match.fixture.date).toLocaleDateString("es-HN")
-        : "Fecha no disponible";
+    const h4 = document.createElement("h4");
+    h4.textContent = "Últimos partidos";
+    bloque.appendChild(h4);
 
-      const row = document.createElement("div");
-      row.className = "match";
-      addText(row, "div", home + "  " + score + "  " + away, "score");
-      addText(row, "div", date, "small");
-      section.appendChild(row);
-    });
+    for (const p of r.detalle) {
+      const linea = document.createElement("p");
+      const d = p.fecha ? new Date(p.fecha).toLocaleDateString("es-HN") : "";
+      linea.textContent = `${d} · ${p.casa ? "Local" : "Visitante"} vs ${p.rival}: ${p.marcador}`;
+      bloque.appendChild(linea);
+    }
 
-    $("results").appendChild(section);
+    if (!r.jugados) {
+      const aviso = document.createElement("p");
+      aviso.textContent = "No hay resultados finalizados disponibles.";
+      bloque.appendChild(aviso);
+    }
+
+    return bloque;
   }
 
-  async function analyze() {
-    if (loading) return;
+  async function analizar() {
+    if (analizando) return;
 
-    const homeId = Number(homeSelect.value);
-    const awayId = Number(awaySelect.value);
+    const casa = encontrarEquipo(local.value);
+    const fuera = encontrarEquipo(visitante.value);
 
-    if (!homeId || !awayId) {
-      setStatus("analysisStatus", "Selecciona el equipo local y el visitante.", "bad");
+    if (!casa || !fuera) {
+      resultado.textContent =
+        "Escribe y selecciona los nombres exactos de ambos equipos de la lista.";
       return;
     }
 
-    if (homeId === awayId) {
-      setStatus("analysisStatus", "Selecciona dos equipos diferentes.", "bad");
+    if (String(casa.id) === String(fuera.id)) {
+      resultado.textContent = "Selecciona dos equipos diferentes.";
       return;
     }
 
-    loading = true;
-    analyzeBtn.disabled = true;
-    loadBtn.disabled = true;
-    $("results").replaceChildren();
-    setStatus("analysisStatus", "Consultando los últimos 5 partidos de cada equipo...");
+    analizando = true;
+    analizarBtn.disabled = true;
+    resultado.textContent = "Consultando los últimos partidos...";
 
     try {
-      // Consultas separadas para evitar confundir los equipos.
-      const homeData = await api("fixtures", { team: homeId, last: 5 });
-      await wait(1200);
-      const awayData = await api("fixtures", { team: awayId, last: 5 });
-
-      const homeSummary = summarize(getResponse(homeData), homeId);
-      const awaySummary = summarize(getResponse(awayData), awayId);
-
-      if (!homeSummary.played && !awaySummary.played) {
-        throw new Error(
-          "La fuente no devolvió resultados completos. " +
-          "Puede faltar historial o la API puede haber limitado las consultas."
-        );
-      }
-
-      renderSummary(homeSummary);
-      renderSummary(awaySummary);
-
-      const enough = homeSummary.played >= 3 && awaySummary.played >= 3;
-      let reading;
-
-      if (!enough) {
-        reading = "Hay pocos partidos completos para una lectura sólida. " +
-          "No se recomienda inclinarse por un equipo con esta muestra.";
-      } else {
-        const homePoints = homeSummary.wins * 3 + homeSummary.draws;
-        const awayPoints = awaySummary.wins * 3 + awaySummary.draws;
-        const homeRate = homePoints / homeSummary.played;
-        const awayRate = awayPoints / awaySummary.played;
-        const homeGoalDiff =
-          (homeSummary.scored - homeSummary.conceded) / homeSummary.played;
-        const awayGoalDiff =
-          (awaySummary.scored - awaySummary.conceded) / awaySummary.played;
-
-        if (homeRate > awayRate && homeGoalDiff > awayGoalDiff) {
-          reading = homeSummary.name +
-            " presenta mejores números recientes en puntos por partido y diferencia de goles.";
-        } else if (awayRate > homeRate && awayGoalDiff > homeGoalDiff) {
-          reading = awaySummary.name +
-            " presenta mejores números recientes en puntos por partido y diferencia de goles.";
-        } else {
-          reading = "Los datos recientes no muestran una ventaja estadística clara.";
-        }
-      }
-
-      addText($("results"), "div", "LECTURA ESTADÍSTICA", "small");
-      addText($("results"), "p", reading);
-      addText(
-        $("results"),
-        "p",
-        "Importante: este análisis usa resultados y goles. " +
-        "Todavía no calcula córners, tarjetas, fueras de juego ni remates de jugadores.",
-        "small"
+      // Una consulta por equipo; no repetir llamadas para el mismo equipo.
+      const datosCasa = await pedir(
+        `/fixtures?team=${encodeURIComponent(casa.id)}&last=5`
       );
 
-      setStatus("analysisStatus", "Análisis completado con los datos disponibles.", "good");
+      // Pausa para reducir la velocidad de consultas.
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const datosFuera = await pedir(
+        `/fixtures?team=${encodeURIComponent(fuera.id)}&last=5`
+      );
+
+      const rCasa = resumen(casa, listaPartidos(datosCasa));
+      const rFuera = resumen(fuera, listaPartidos(datosFuera));
+
+      resultado.innerHTML = "";
+
+      const encabezado = document.createElement("p");
+      encabezado.className = "score";
+      encabezado.textContent = `${casa.name} vs ${fuera.name}`;
+      resultado.appendChild(encabezado);
+
+      resultado.appendChild(pintarResumen(rCasa));
+      resultado.appendChild(pintarResumen(rFuera));
+
+      const nota = document.createElement("p");
+      nota.className = "muted";
+      nota.textContent =
+        "El análisis se basa en resultados recientes disponibles. " +
+        "No incluye todavía estadísticas verificadas de córners, tarjetas, " +
+        "fueras de juego ni remates a puerta de jugadores.";
+      resultado.appendChild(nota);
     } catch (error) {
-      setStatus("analysisStatus", error.message, "bad");
+      resultado.textContent =
+        "El proveedor rechazó la solicitud: " + error.message +
+        ". Puede ser un límite de consultas o un error de configuración del servidor.";
     } finally {
-      loading = false;
-      analyzeBtn.disabled = false;
-      loadBtn.disabled = false;
+      analizando = false;
+      analizarBtn.disabled = false;
     }
   }
 
-  loadBtn.addEventListener("click", loadFixtures);
-  analyzeBtn.addEventListener("click", analyze);
-  checkConnection();
+  cargarBtn.addEventListener("click", cargarEquipos);
+  analizarBtn.addEventListener("click", analizar);
+
+  $("limpiar").addEventListener("click", () => {
+    local.value = "";
+    visitante.value = "";
+    resultado.textContent = "Selecciona los dos equipos para comenzar.";
+  });
+
+  // Comprueba que la dirección del Worker responda.
+  pedir("/")
+    .then(() => {
+      conexion.textContent = "Conexión correcta con el servidor.";
+    })
+    .catch(() => {
+      conexion.textContent =
+        "No se pudo comprobar el servidor. Prueba cargar los equipos.";
+    });
+
+  cargarEquipos();
 })();
 </script>
 </body>
 </html>
+
 
